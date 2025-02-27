@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useState } from "react";
-import { FaPlus, FaRegBookmark, FaSearch, FaSun,FaMoon,FaTrash, FaTrashAlt, FaPlusCircle } from "react-icons/fa";
+import { FaRegBookmark, FaSearch, FaSun,FaMoon, FaTrashAlt, FaPlusCircle } from "react-icons/fa";
 
 const movies = [
   {
