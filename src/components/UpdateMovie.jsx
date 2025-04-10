@@ -1,15 +1,17 @@
 import { motion } from "framer-motion";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaSun, FaMoon } from "react-icons/fa";
 import axios from "axios"; 
 import { toast } from "react-toastify"; 
-import { useNavigate } from "react-router-dom";
+import { useParams,useNavigate } from "react-router-dom"; 
 
-function AddMovie() {
+function UpdateMovie() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const BASE_URL = import.meta.env.VITE_BASE_URL;
+  const { movieId } = useParams(); 
   const navigate = useNavigate();
+
   const [movie, setMovie] = useState({
     title: "",
     image: "",
@@ -19,10 +21,28 @@ function AddMovie() {
     year: "",
     cast: "",
     imdb: "",
+    region:"",
   });
 
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false); 
+
+  useEffect(() => {
+    const fetchMovie = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/movies/${movieId}`);
+        if (response.status === 200) {
+          setMovie(response.data.movie);
+        } else {
+          toast.error("Movie not found!");
+        }
+      } catch (error) {
+        console.error("Error fetching movie:", error.response ? error.response.data : error.message);
+        toast.error(error.response?.data?.message || "Error fetching movie details.");
+      }
+    };
+    fetchMovie();
+  }, [movieId]);
+  
 
   const handleChange = (e) => {
     setMovie({ ...movie, [e.target.name]: e.target.value });
@@ -31,37 +51,19 @@ function AddMovie() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (Object.values(movie).some((value) => value.trim() === "")) {
-      toast.error("Please fill in all fields!");
-      return;
-    }
-
     setLoading(true); 
 
     try {
-      const response = await axios.post(`${BASE_URL}/movies/addMovie`, movie);
+      const response = await axios.put(`${BASE_URL}/movies/update_movie/${movieId}`, movie);
 
-      if (response.status === 201) {
-        setSubmitted(true);
-        toast.success("Movie added successfully!");
-        setTimeout(() => setSubmitted(false), 3000); 
-        setMovie({ 
-          title: "",
-          image: "",
-          description: "",
-          director: "",
-          genre: "",
-          year: "",
-          region:"",
-          cast: "",
-          imdb: "",
-        });
+      if (response.status === 200) {
+        toast.success("Movie updated successfully!");
         navigate('/admin');
       } else {
-        toast.error(response.data.message || "Failed to add movie");
+        toast.error(response.data.message || "Failed to update movie");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "An error occurred while adding movie");
+      toast.error(error.response?.data?.message || "An error occurred while updating movie");
     } finally {
       setLoading(false); 
     }
@@ -80,7 +82,7 @@ function AddMovie() {
       }}
     >
       <div className="d-flex justify-content-between align-items-center px-4 pb-3">
-        <h3 className={isDarkMode ? "text-primary" : "text-dark"}>🎬 Add Movie</h3>
+        <h3 className={isDarkMode ? "text-primary" : "text-dark"}>🎬 Update Movie</h3>
         <motion.div
           onClick={() => setIsDarkMode(!isDarkMode)}
           whileTap={{ rotate: 360 }}
@@ -169,7 +171,6 @@ function AddMovie() {
                   <label className="form-label">Region</label>
                   <input type="text" step="0.1" name="region" className="form-control" value={movie.region} onChange={handleChange} required />
               </motion.div>
-    
 
               <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }} className="mb-3">
                 <label className="form-label">Main Cast</label>
@@ -189,42 +190,9 @@ function AddMovie() {
                 }}
                 disabled={loading} 
               >
-                {loading ? "Adding Movie..." : "Submit Movie"}
+                {loading ? "Updating Movie..." : "Update Movie"}
               </motion.button>
             </form>
-          </div>
-
-          <div className="col-md-6">
-            {submitted && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="card text-white shadow-lg mt-4"
-                style={{
-                  background: isDarkMode ? "#0d1b2a" : "#ffffff",
-                  borderRadius: "10px",
-                  border: isDarkMode ? "none" : "2px solid #222",
-                }}
-              >
-                <img
-                  src={movie.image || "https://via.placeholder.com/300"}
-                  className="card-img-top"
-                  alt="Movie"
-                  style={{
-                    height: "180px",
-                    objectFit: "cover",
-                    borderTopLeftRadius: "10px",
-                    borderTopRightRadius: "10px",
-                  }}
-                />
-                <div className="card-body">
-                  <h5>{movie.title}</h5>
-                  <p><strong>Genre:</strong> {movie.genre}</p>
-                  <p><strong>IMDB:</strong> ⭐ {movie.imdb}</p>
-                </div>
-              </motion.div>
-            )}
           </div>
         </div>
       </motion.div>
@@ -232,4 +200,4 @@ function AddMovie() {
   );
 }
 
-export default AddMovie;
+export default UpdateMovie;

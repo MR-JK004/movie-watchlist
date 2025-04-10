@@ -1,70 +1,51 @@
 import { motion } from "framer-motion";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useState } from "react";
-import { FaRegBookmark, FaSearch, FaSun,FaMoon, FaTrashAlt, FaPlusCircle } from "react-icons/fa";
-
-const movies = [
-  {
-    id: 1,
-    title: "RRR",
-    image: "https://indiaglitz-media.s3.amazonaws.com/telugu/home/rrr-review-250322-1.jpg",
-    director: "S. S. Rajamouli",
-    genre: "Action, Drama",
-    year: 2022,
-    cast: "N. T. Rama Rao Jr., Ram Charan",
-    imdb: 8.0,
-  },
-  {
-    id: 2,
-    title: "KGF Chapter 2",
-    image: "https://www.hiravshah.com/wp-content/uploads/2022/04/kgf-chapter-2.jpg",
-    director: "Prashanth Neel",
-    genre: "Action, Crime, Drama",
-    year: 2022,
-    cast: "Yash, Sanjay Dutt, Raveena Tandon",
-    imdb: 8.3,
-  },
-  {
-    id: 3,
-    title: "Pushpa: The Rule",
-    image: "https://www.livehindustan.com/lh-img/smart/img/2024/11/17/1200x900/Pushpa_2_The_Rule_1731843940754_1731843941797.jpg",
-    description: "A gripping tale of a red sandalwood smuggler.",
-    director: "Sukumar",
-    genre: "Action, Thriller",
-    year: 2024,
-    cast: "Allu Arjun, Rashmika Mandanna",
-    imdb: 8.2,
-  },
-  {
-    id: 4,
-    title: "Vikram",
-    image: "https://static.toiimg.com/photo/91660096.cms",
-    description: "A dark, thrilling action-packed movie starring Kamal Haasan.",
-    director: "Lokesh Kanagaraj",
-    genre: "Action, Thriller",
-    year: 2022,
-    cast: "Kamal Haasan, Vijay Sethupathi, Fahadh Faasil",
-    imdb: 8.4,
-  },
-];
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { FaRegBookmark, FaSearch, FaSun, FaMoon, FaEdit, FaTrash,FaPlusCircle } from "react-icons/fa";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 function AdminHome() {
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
+  const [movies, setMovies] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const addToWatchlist = (movie) => {
-    if (watchlist.find((m) => m.id === movie.id)) {
-      setWatchlist(watchlist.filter((m) => m.id !== movie.id));
-    } else {
-      setWatchlist([...watchlist, movie]);
+  useEffect(() => {
+
+    const fetchMovies = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/movies`);
+        console.log(response.data);
+        setMovies(Array.isArray(response.data.movies) ? response.data.movies : []);
+        setLoading(false);
+      } catch (err) {
+        setError("Failed to load movies");
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, []);
+
+  const deleteMovie = async (movieId) => {
+    try {
+      const response = await axios.delete(`${BASE_URL}/movies/delete/${movieId}`);
+
+      if (response.status === 200) {
+        toast.warn("Movie deleted Successfully");
+        window.location.reload();
+      }
+    } catch (error) {
+       toast.error("There was an error in deleting the movie",error);
     }
   };
-
-  const deleteMovie = (movie) => {
-    setWatchlist(watchlist.filter((m) => m.id !== movie.id));
-  };
+  
 
   return (
     <motion.div
@@ -80,7 +61,7 @@ function AdminHome() {
     >
       {/* Navbar */}
       <div className="d-flex justify-content-between align-items-center px-4 pb-3" style={{ marginTop: "10px" }}>
-        <h3 className={isDarkMode ? "text-primary" : "text-dark"}>🎬 Movie Watchlist</h3>
+        <h3 className={isDarkMode ? "text-primary" : "text-dark"}>🎬 Admin Movie Watchlist Management</h3>
         <div className="d-flex align-items-center gap-4">
           {/* Search Icon */}
           <motion.div
@@ -111,15 +92,17 @@ function AdminHome() {
             )}
           </motion.div>
 
-          {/* Add Movie Icon */}
-          <motion.div
-            whileHover={{ scale: 1.2 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => console.log("Add movie")}
-            style={{ cursor: "pointer", color: isDarkMode ? "white" : "#222" }}
-          >
-            <FaPlusCircle size={24} title="Add Movie" />
-          </motion.div>
+          {/*AddMovie Icon*/}
+          <Link to={'/add-movie'}>
+            <motion.div
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => console.log("Add movie")}
+              style={{ cursor: "pointer", color: isDarkMode ? "white" : "#222" }}
+            >
+            <FaPlusCircle size={24} title="Add Movie"/>
+            </motion.div>
+          </Link>
 
           {/* Dark Mode Toggle */}
           <motion.div
@@ -153,74 +136,113 @@ function AdminHome() {
       {/* Movie Cards */}
       <div className="container" style={{ marginTop: "50px", marginLeft: '120px' }}>
         <div className="row" style={{ marginLeft: '-80px' }}>
-          {movies
-            .filter((movie) => movie.title.toLowerCase().includes(searchQuery.toLowerCase()))
-            .map((movie) => (
-              <motion.div
-                key={movie.id}
-                className="col-lg-3 col-md-6 d-flex justify-content-center mb-4"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                whileHover={{ scale: 1.05 }}
-              >
-                <div
-                  className="card shadow-lg"
-                  style={{
-                    background: isDarkMode
-                      ? "linear-gradient(135deg, #0d1b2a, #1b263b)"
-                      : "linear-gradient(135deg, #ffffff, #e0e0e0)",
-                    borderRadius: "10px",
-                    width: "300px",
-                    height: "420px",
-                    overflow: "hidden",
-                    border: isDarkMode ? "none" : "2px solid #222",
-                    transition: "all 0.5s ease",
-                  }}
+          {loading ? (
+            <div className="d-flex justify-content-center align-items-center" style={{ height: "50vh" }}>
+              <div className="spinner-border text-primary" style={{ width: "3rem", height: "3rem" }} role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : error ? (
+            <p>{error}</p>
+          ) : (
+            movies
+              .filter((movie) => movie.title.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((movie) => (
+                <motion.div
+                  key={movie.id}
+                  className="col-lg-3 col-md-6 d-flex justify-content-center mb-4"
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  whileHover={{ scale: 1.05 }}
                 >
-                  <img
-                    src={movie.image}
-                    className="card-img-top"
-                    alt={movie.title}
+                  <div
+                    className="card shadow-lg"
                     style={{
-                      height: "165px",
-                      objectFit: "cover",
-                      borderTopLeftRadius: "10px",
-                      borderTopRightRadius: "10px",
+                      background: isDarkMode
+                        ? "linear-gradient(135deg, #0d1b2a, #1b263b)"
+                        : "linear-gradient(135deg, #ffffff, #e0e0e0)",
+                      borderRadius: "10px",
+                      width: "300px",
+                      height: "440px",
+                      overflow: "hidden",
+                      border: isDarkMode ? "none" : "2px solid #222",
+                      transition: "all 0.5s ease",
                     }}
-                  />
-                  <div className="card-body text-start">
-                    <h6 className="card-title" style={{ color: isDarkMode ? 'white' : 'black' }}>{movie.title}</h6>
-                    <p className="card-text small" style={{
-                      color: "#61757D",
-                      fontSize: "15px",
-                      paddingRight: "6px",
-                      transition: "background 0.3s ease",
-                    }}>
-                      <strong>Director:</strong> {movie.director} <br />
-                      <strong>Genre:</strong> {movie.genre} <br />
-                      <strong>Year:</strong> {movie.year} <br />
-                      <strong>Main Cast:</strong> {movie.cast} <br />
-                      <strong>IMDB Rating:</strong> ⭐ {movie.imdb} <br />
-                    </p>
-
-                    <button
-                      className="btn w-100 mt-2"
-                      onClick={() => deleteMovie(movie)}
+                  >
+                    <img
+                      src={movie.image}
+                      className="card-img-top"
+                      alt={movie.title}
                       style={{
-                        backgroundColor: "red",
-                        color: "white",
-                        fontSize: "12px",
-                        padding: "6px",
-                        transition: "background 0.3s ease",
+                        height: "185px",
+                        objectFit: "cover",
+                        borderTopLeftRadius: "10px",
+                        borderTopRightRadius: "10px",
                       }}
-                    >
-                      <FaTrashAlt style={{marginRight:'10px',marginBottom:'4px',fontSize:'15px'}}/>   Delete Movie
-                    </button>
+                    />
+                    <div className="card-body text-start">
+                      <h6 className="card-title" style={{ color: isDarkMode ? 'white' : 'black' }}>{movie.title}</h6>
+                      <p className="card-text small"
+                        style={{
+                          color: "#61757D",
+                          fontSize: "15px",
+                          paddingRight: "6px",
+                          transition: "background 0.3s ease",
+                        }}>
+                        <strong>Director:</strong> {movie.director} <br />
+                        <strong>Genre:</strong> {movie.genre} <br />
+                        <strong>Year:</strong> {movie.year} <br />
+                        <strong>Main Cast:</strong> {movie.cast} <br />
+                        <strong>IMDB Rating:</strong> ⭐ {movie.imdb} <br />
+                      </p>
+                      <div className="row g-2 mt-3">
+                        <div className="col-6">
+                          <Link to={`/update-movie/${movie.movie_id}`} style={{ textDecoration: "none" }}>
+                            <motion.button
+                              className="btn w-100 d-flex align-items-center justify-content-center"
+                              style={{
+                                backgroundColor: "#28a745",
+                                color: "white",
+                                fontSize: "13px",
+                                padding: "8px",
+                                borderRadius: "8px",
+                                transition: "background 0.3s ease",
+                              }}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <FaEdit style={{ marginRight: "5px" }} />
+                              Update
+                            </motion.button>
+                          </Link>
+                        </div>
+
+                        <div className="col-6">
+                          <motion.button
+                            className="btn w-100 d-flex align-items-center justify-content-center"
+                            style={{
+                              backgroundColor: "#dc3545",
+                              color: "white",
+                              fontSize: "13px",
+                              padding: "8px",
+                              borderRadius: "8px",
+                              transition: "background 0.3s ease",
+                            }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={()=>deleteMovie(movie.movie_id)}
+                          >
+                            <FaTrash style={{ marginRight: "5px" }} />
+                            Delete
+                          </motion.button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+          )}
         </div>
       </div>
     </motion.div>

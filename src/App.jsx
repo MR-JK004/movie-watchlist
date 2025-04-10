@@ -8,8 +8,8 @@ import Watchlist from "./components/Watchlist";
 import MovieDetails from "./components/MovieDetails";
 import Login from "./components/Login";
 import "./index.css";
-import axios from "axios";
 import Register from "./components/Register";
+import UpdateMovie from "./components/UpdateMovie";
 
 function App() {
   const [darkMode, setDarkMode] = useState(true);
@@ -23,9 +23,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/movies_list" element={<Home />} />
             <Route path="/admin" element={<AdminHome />} />
-            <Route path="/add_movie" element={<AddMovie />} />
-            {/* <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} /> */}
+            <Route path="/add-movie" element={<AddMovie />} />
+            <Route path="/update-movie/:movieId" element={<UpdateMovie />} />
           </Routes>
         </motion.div>
       </div>
