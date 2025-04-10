@@ -17,48 +17,65 @@ function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const moviesPerPage = 30;
 
-  useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        const response = await axios.get("https://api.themoviedb.org/3/discover/movie", {
+  const fetchMovies = async (page) => {
+    try {
+      setLoading(true);
+      const [res1, res2] = await Promise.all([
+        axios.get("https://api.themoviedb.org/3/discover/movie", {
           params: {
             api_key: "2d30d4b184e9f0394d6e01d8326fc65f",
             language: "ta-IN",
             sort_by: "popularity.desc",
             include_adult: false,
             include_video: false,
-            page: 0,
+            page: (page - 1) * 2 + 1,
             "primary_release_date.gte": "2000-01-01",
             with_original_language: "ta"
           }
-        });
+        }),
+        axios.get("https://api.themoviedb.org/3/discover/movie", {
+          params: {
+            api_key: "2d30d4b184e9f0394d6e01d8326fc65f",
+            language: "ta-IN",
+            sort_by: "popularity.desc",
+            include_adult: false,
+            include_video: false,
+            page: (page - 1) * 2 + 2,
+            "primary_release_date.gte": "2000-01-01",
+            with_original_language: "ta"
+          }
+        })
+      ]);
 
-        const tmdbMovies = response.data.results
-          .map((movie) => ({
-            movie_id: movie.id,
-            title: movie.title,
-            image: `https://image.tmdb.org/t/p/original${movie.backdrop_path}`,
-            description: movie.overview,
-            director: "Unknown",
-            genre: movie.genre_ids.join(", "),
-            year: movie.release_date?.split("-")[0],
-            cast: "Not available",
-            imdb: movie.vote_average,
-            region: "Kollywood"
-          }))
-          .filter((movie) => parseInt(movie.year) < 2026)
-          .sort((a, b) => (b.year || 0) - (a.year || 0));
+      const combined = [...res1.data.results, ...res2.data.results].slice(0, 30);
 
-        setMovies(tmdbMovies);
-        setLoading(false);
-      } catch (err) {
-        setError("Failed to load movies");
-        setLoading(false);
-      }
-    };
+      const tmdbMovies = combined
+        .map((movie) => ({
+          movie_id: movie.id,
+          title: movie.title,
+          image: `https://image.tmdb.org/t/p/original${movie.backdrop_path}`,
+          description: movie.overview,
+          director: "Unknown",
+          genre: movie.genre_ids.join(", "),
+          year: movie.release_date?.split("-")[0],
+          cast: "Not available",
+          imdb: movie.vote_average,
+          region: "Kollywood"
+        }))
+        .filter((movie) => parseInt(movie.year) < 2026)
+        .sort((a, b) => (b.year || 0) - (a.year || 0));
 
-    fetchMovies();
-  }, []);
+      setMovies(tmdbMovies);
+      setLoading(false);
+    } catch (err) {
+      setError("Failed to load movies");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMovies(currentPage);
+  }, [currentPage]);
 
   const addToWatchlist = async (movieId) => {
     try {
@@ -73,9 +90,9 @@ function Home() {
 
   const indexOfLastMovie = currentPage * moviesPerPage;
   const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
-  const currentMovies = movies
-    .filter((movie) => movie.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    .slice(indexOfFirstMovie, indexOfLastMovie);
+  const currentMovies = movies.filter((movie) =>
+    movie.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const totalPages = Math.ceil(
     movies.filter((movie) => movie.title.toLowerCase().includes(searchQuery.toLowerCase())).length / moviesPerPage
@@ -204,17 +221,45 @@ function Home() {
             </div>
 
             <div className="d-flex justify-content-center mt-4">
-              <nav>
-                <ul className="pagination">
-                  {[...Array(totalPages)].map((_, idx) => (
-                    <li key={idx} className={`page-item ${currentPage === idx + 1 ? "active" : ""}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(idx + 1)}>
-                        {idx + 1}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+              <motion.ul
+                className="pagination d-flex gap-2"
+                initial={{ x: 0 }}
+                animate={{ x: -((currentPage - 1) * 40) }} // slide left on page click
+                transition={{ type: "spring", stiffness: 100 }}
+                style={{ overflow: "hidden", width: "fit-content", padding: "0 20px", justifyContent: "center" }}
+              >
+                {[1, 2, 3, 4, 5].map((pageNum) => (
+                  <motion.li
+                    key={pageNum}
+                    className={`page-item ${currentPage === pageNum ? "active" : ""}`}
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <button
+                      type="button" // prevents it from being interpreted as a submit button
+                      className="page-link"
+                      style={{
+                        borderRadius: "8px",
+                        fontWeight: "bold",
+                        backgroundColor: currentPage === pageNum ? "#007bff" : "transparent",
+                        color: currentPage === pageNum ? "white" : isDarkMode ? "white" : "#222",
+                        border: "1px solid #007bff",
+                        transition: "all 0.3s ease"
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault(); // prevent default anchor/button behavior
+                        if (pageNum !== currentPage) {
+                          setCurrentPage(pageNum);
+                          fetchMovies(pageNum); // make sure this is not causing a reload
+                        }
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  </motion.li>
+                ))}
+              </motion.ul>
             </div>
           </>
         )}
